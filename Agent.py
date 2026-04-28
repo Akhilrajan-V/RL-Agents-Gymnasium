@@ -7,23 +7,24 @@ import experience_replay as ExpMemory
 import os
 import matplotlib.pyplot as plt
 from datetime import datetime
+from video_recorder import VideoRecorder
 
-class Agent:
+class Agent(VideoRecorder):
     def __init__(self):
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        super().__init__()  # Initialize VideoRecorder parent class
         self.epsilon = 1.0
         self.epsilon_decay = 0.001
         self.epsilon_min = 0.0
         self.learning_rate = 0.001 
         self.discount_factor = 0.9
         self.target_sync_rate = 10
-    
+
     def _encode_state(self, state, state_size):
         """Convert scalar state to one-hot encoded tensor for discrete environments"""
         one_hot = torch.zeros(state_size, dtype=torch.float).to(self.device)
         one_hot[int(state)] = 1
         return one_hot
-
+    
     def run(self, envName, render, isSlippery, isTraining, episodes):
         print(f"Using device: {self.device}")
         env = gym.make(envName, map_name="4x4", is_slippery=isSlippery, max_episode_steps=200, render_mode="human" if render else "None")
@@ -140,47 +141,6 @@ class Agent:
             self._save_training_plots(run_dir)
             print(f"\nTraining complete! Logs and plots saved to: {run_dir}")
 
-
-    # def optimize1(self, mini_batch, policy_dqn, target_dqn):
-
-        # Get number of input nodes
-        num_states = policy_dqn.fc1.in_features
-
-        current_q_list = []
-        target_q_list = []
-
-        for state, action, reward, new_state, terminated in mini_batch:
-
-            if terminated: 
-                # Agent either reached goal (reward=1) or fell into hole (reward=0)
-                # When in a terminated state, target q value should be set to the reward.
-                target = torch.FloatTensor([reward]).to(self.device)
-            else:
-                # Calculate target q value 
-                with torch.no_grad():
-                    target = torch.FloatTensor([
-                        reward + self.discount_factor * target_dqn(self._encode_state(new_state, num_states)).max().item()
-                    ]).to(self.device)
-
-            # Get the current set of Q values
-            current_q = policy_dqn(self._encode_state(state, num_states))
-            current_q_list.append(current_q)
-
-            # Get the target set of Q values
-            target_q = target_dqn(self._encode_state(state, num_states))
-
-            # Adjust the specific action to the target that was just calculated
-            target_q[action] = target
-            target_q_list.append(target_q)
-                
-        # Compute loss for the whole minibatch
-        loss = self.loss_fnc(torch.stack(current_q_list), torch.stack(target_q_list))
-
-        # Optimize the model
-        self.optimizer.zero_grad()
-        loss.backward()
-        self.optimizer.step()
-
     # Run the FrozeLake environment with the learned policy
     def test(self, episodes, model_path, is_slippery=False):
         # Create FrozenLake instance
@@ -208,7 +168,6 @@ class Agent:
                 state,reward,terminated,truncated,_ = env.step(action)
 
         env.close()
-
 
     def optimize(self, mini_batch, policy_dqn, target_dqn):
            
@@ -283,9 +242,24 @@ class Agent:
 
 if __name__ == "__main__":
     agent = Agent()
-    input_mode = input("1.Train a new model\n 2.Evaluate a trained model: \n").strip().lower()
+    input_mode = input("1. Train a new model\n2. Evaluate a trained model\n3. Record trained policy as video\nChoice: ").strip().lower()
     if input_mode == '1':
-        agent.run(envName="FrozenLake-v1", render=False, isSlippery=True, isTraining=True, episodes=15000)    
+        episodes = input("Number of episodes to train (default=15000): ").strip()
+        episodes = int(episodes) if episodes.isdigit() else 15000
+        is_slippery_input = input("Is slippery? (y/n, default=y): ").strip().lower()
+        is_slippery = is_slippery_input != 'n'
+        agent.run(envName="FrozenLake-v1", render=False, isSlippery=is_slippery, isTraining=True, episodes=episodes)    
     elif input_mode == '2':
         model_path = input("Enter the path to the trained model (e.g., runs/2026_0426_03_45_22_PM/policy_dqn_2026_0426_03_45_22_PM.pt): ")
-        agent.test(episodes=5, model_path=model_path, is_slippery=True)
+        episodes = input("Number of episodes to test (default=5): ").strip()
+        episodes = int(episodes) if episodes.isdigit() else 5
+        is_slippery_input = input("Is slippery? (y/n, default=y): ").strip().lower()
+        is_slippery = is_slippery_input != 'n'
+        agent.test(episodes=episodes, model_path=model_path, is_slippery=is_slippery)
+    elif input_mode == '3':
+        model_path = input("Enter the path to the trained model (e.g., runs/2026_0426_03_45_22_PM/policy_dqn_2026_0426_03_45_22_PM.pt): ")
+        episodes = input("Number of episodes to record (default=3): ").strip()
+        episodes = int(episodes) if episodes.isdigit() else 3
+        is_slippery_input = input("Is slippery? (y/n, default=n): ").strip().lower()
+        is_slippery = is_slippery_input == 'y'
+        agent.record_video(model_path=model_path, episodes=episodes, is_slippery=is_slippery)
