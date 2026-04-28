@@ -175,9 +175,11 @@ target_sync_rate = 10         # Sync target network every N episodes
 ### DQN Policy in Action
 
 **Deterministic Environment (is_slippery=False)**
+
 ![DQN Video - Deterministic](media/DQN-video-episode.gif)
 
 **Stochastic Environment (is_slippery=True)**
+
 ![DQN Video - Slippery](media/DQN-video-episode-slippery.gif)
 
 These demonstrations show the trained DQN policy successfully navigating the FrozenLake environment. The agent learns to take optimal actions to reach the goal while avoiding holes.
