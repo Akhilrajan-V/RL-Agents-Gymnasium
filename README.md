@@ -251,7 +251,7 @@ When training completes, the following files are saved to `runs/QLearning/`:
 
 ### System Requirements
 
-- **RAM**: 2GB minimum (4GB+ recommended)
+- **RAM**: 8GB minimum (16GB+ recommended)
 - **GPU**: Optional (PyTorch will use CPU if unavailable)
 - **Storage**: ~100MB for outputs (models + plots)
 
@@ -265,7 +265,6 @@ When training completes, the following files are saved to `runs/QLearning/`:
 - [ ] Different environment variants (CartPole, MountainCar)
 - [ ] Hyperparameter tuning utilities
 - [ ] Training convergence analysis
-- [ ] Web-based visualization dashboard
 
 ---
 
